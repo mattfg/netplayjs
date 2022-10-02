@@ -3,13 +3,26 @@ import * as utils from "./utils";
 import { TouchControl } from "./touchcontrols";
 
 export class DefaultInput extends NetplayInput<DefaultInput> {
-  pressed: { [key: string]: boolean } = {};
+  pressed: { [key: string]: boolean }
+  mousePosition?: { x: number; y: number }
+  touches: Array<{ x: number; y: number }>
+  touchControls?: { [name: string]: any }
+  time: number
 
-  mousePosition?: { x: number; y: number };
-
-  touches: Array<{ x: number; y: number }> = [];
-
-  touchControls?: { [name: string]: any };
+  constructor(
+    pressed: { [key: string]: boolean },
+    touches: Array<{ x: number; y: number }>,
+    time: number,
+    mousePosition?: { x: number; y: number },
+    touchControls?: { [name: string]: any },
+  ) {
+    super();
+    this.pressed = pressed;
+    this.mousePosition = mousePosition;
+    this.touchControls = touchControls;
+    this.touches = touches;
+    this.time = time;
+  }
 }
 
 export class DefaultInputReader {
@@ -132,19 +145,24 @@ export class DefaultInputReader {
   }
 
   getInput(): DefaultInput {
-    let input = new DefaultInput();
-
-    for (let key in this.PRESSED_KEYS) {
-      if (this.PRESSED_KEYS[key]) input.pressed[key] = true;
-    }
-    if (this.mousePosition)
-      input.mousePosition = utils.clone(this.mousePosition);
-    input.touches = utils.clone(this.touches);
-
+    let touchControls = {};
     for (let [name, control] of Object.entries(this.touchControls)) {
-      input.touchControls = input.touchControls || {};
-      input.touchControls[name] = utils.clone(control.getValue());
+      touchControls = touchControls || {};
+      touchControls[name] = utils.clone(control.getValue());
     }
+
+    let pressed = {};
+    for (let key in this.PRESSED_KEYS) {
+      if (this.PRESSED_KEYS[key]) pressed[key] = true;
+    }
+
+    let input = new DefaultInput(
+      pressed,
+      utils.clone(this.touches),
+      Date.now(),
+      this.mousePosition? utils.clone(this.mousePosition) : undefined,
+      touchControls
+    )
 
     return input;
   }
